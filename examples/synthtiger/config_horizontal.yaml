@@ -2,6 +2,7 @@ vertical: false
 quality: [50, 95]
 visibility_check: true
 split_char: true
+use_offset: true
 
 midground: 0.25
 midground_offset:

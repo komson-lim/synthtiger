@@ -20,13 +20,14 @@ class TextLayer(Layer):
         color=(0, 0, 0, 255),
         bold=False,
         vertical=False,
+        use_offset=False,
     ):
         # https://en.wikipedia.org/wiki/Backslash
         text = text.replace("\\", "＼")
 
+        self.use_offset = use_offset
         font = self._read_font(path, size)
         image, bbox = self._render_text(text, font, color, bold, vertical)
-
         super().__init__(image)
         self.bbox = bbox
 
@@ -68,7 +69,7 @@ class TextLayer(Layer):
 
         image = utils.create_image((width, height))
         for patch, (x, y, w, h) in zip(patches, bboxes):
-            image[y : y + h, x : x + w] = patch
+            image[y: y + h, x: x + w] = patch
 
         bbox = [-width // 2, 0, width, height]
 
@@ -134,15 +135,16 @@ class TextLayer(Layer):
         sx, sy, patch_width, patch_height = inner_bbox
 
         patch, _ = self._get_image(char, font, color, bold, False)
-        patch = patch[sy : sy + patch_height, sx : sx + patch_width]
+        patch = patch[sy: sy + patch_height, sx: sx + patch_width]
         patch_height, patch_width = patch.shape[:2]
 
         ascent = -bbox[1]
         width, height = max(ascent, patch_width), max(ascent, patch_height)
-        dx, dy = max(width - patch_width, 0), max(height - patch_height - sy, 0)
+        dx, dy = max(width - patch_width,
+                     0), max(height - patch_height - sy, 0)
 
         image = utils.create_image((width, height))
-        image[dy : dy + patch_height, dx : dx + patch_width] = patch
+        image[dy: dy + patch_height, dx: dx + patch_width] = patch
         bbox = [-width // 2, 0, width, height]
 
         return image, bbox
@@ -155,8 +157,10 @@ class TextLayer(Layer):
 
         image = Image.new("RGBA", (width, height))
         draw = ImageDraw.Draw(image)
+        loc = (-min(0, font.getoffset(text)
+               [0]), -min(0, font.getoffset(text)[1])) if self.use_offset else (0, 0)
         draw.text(
-            (0, 0),
+            loc,
             text,
             fill=color,
             font=font,
@@ -174,6 +178,9 @@ class TextLayer(Layer):
             ascent, descent = font.getmetrics()
             width = font.getsize(text, direction=direction)[0]
             height = ascent + descent
+            if self.use_offset:
+                width -= min(0, font.getoffset(text)[0])
+                height -= min(0, font.getoffset(text)[1])
             bbox = [0, -ascent, width, height]
         else:
             width, height = font.getsize(text, direction=direction)
