@@ -179,6 +179,7 @@ class TextLayer(Layer):
             width = font.getsize(text, direction=direction)[0]
             height = ascent + descent
             if self.use_offset:
+                height = font.getsize(text, direction=direction)[1]
                 width -= min(0, font.getoffset(text)[0])
                 height -= min(0, font.getoffset(text)[1])
             bbox = [0, -ascent, width, height]
