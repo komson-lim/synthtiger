@@ -36,6 +36,7 @@ class SynthTiger(templates.Template):
         self.vertical = config.get("vertical", False)
         self.quality = config.get("quality", [95, 95])
         self.visibility_check = config.get("visibility_check", False)
+        self.split_char = config.get("split_char", False)
         self.midground = config.get("midground", 0)
         self.midground_offset = components.Translate(
             **config.get("midground_offset", {})
@@ -173,8 +174,10 @@ class SynthTiger(templates.Template):
 
         text = "".join(chars)
         font = self.font.sample({"text": text, "vertical": self.vertical})
-
-        char_layers = [layers.TextLayer(char, **font) for char in chars]
+        if self.split_char:
+            char_layers = [layers.TextLayer(text, **font)]
+        else:
+            char_layers = [layers.TextLayer(char, **font) for char in chars]
         self.shape.apply(char_layers)
         self.layout.apply(char_layers, {"meta": {"vertical": self.vertical}})
 
@@ -285,7 +288,8 @@ def _create_mask(image, pad=0):
     alpha = image[..., 3].astype(np.uint8)
     mask = np.zeros((height, width), dtype=np.float32)
 
-    cts, _ = cv2.findContours(alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cts, _ = cv2.findContours(
+        alpha, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cts = sorted(cts, key=lambda ct: sum(cv2.boundingRect(ct)[:2]))
 
     if len(cts) == 1:
